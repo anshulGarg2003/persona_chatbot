@@ -1,0 +1,34 @@
+# Git / IDE metadata
+.git
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+
+# Python caches and local environments
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+backend/venv/
+backend/.venv/
+
+# Local databases, uploads, and vector data
+backend/data/
+backend/*.sqlite3
+backend/*.db
+
+# Node / frontend build artifacts
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+

@@ -1,0 +1,11 @@
+django
+djangorestframework
+django-cors-headers
+boto3
+botocore
+python-dotenv
+openai
+pypdf
+psycopg2-binary
+pgvector
+
