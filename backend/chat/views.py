@@ -1,7 +1,9 @@
 import os
 import uuid
 import logging
+import json
 from pathlib import Path
+from django.http import StreamingHttpResponse
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
@@ -12,7 +14,7 @@ from chat.models import ChatMessage, Conversation, CustomPersona
 from chat.services.document_processor import extract_text_from_file, chunk_text
 from chat.services.vector_store import add_persona_documents, delete_persona_documents
 from chat.services.prompt_builder import build_prompt
-from chat.services.bedrock_service import generate_response
+from chat.services.bedrock_service import stream_response
 
 logger = logging.getLogger(__name__)
 
@@ -212,21 +214,32 @@ def chat_view(request):
     logger.info("Chat stage: building prompt persona=%s history_count=%d", persona_key, len(history))
     prompt = build_prompt(persona_key, user_message.strip(), history, persona_obj=persona_obj)
     logger.info("Chat stage: prompt ready persona=%s prompt_chars=%d", persona_key, len(prompt))
-    try:
-        reply = generate_response(prompt)
-    except Exception:
-        logger.exception("Failed to generate chat response for persona %s", persona_key)
-        return Response({"error": "Failed to generate a response."}, status=status.HTTP_502_BAD_GATEWAY)
 
-    logger.info("Chat stage: persisting exchange persona=%s", persona_key)
-    ChatMessage.objects.bulk_create([
-        ChatMessage(conversation=conversation, role="user", content=user_message.strip()),
-        ChatMessage(conversation=conversation, role="assistant", content=reply),
-    ])
-    conversation.save(update_fields=["updated_at"])
-    logger.info("Chat request completed: persona=%s", persona_key)
+    def event_stream():
+        reply_parts = []
+        try:
+            ChatMessage.objects.create(
+                conversation=conversation, role="user", content=user_message.strip()
+            )
+            for text_delta in stream_response(prompt):
+                reply_parts.append(text_delta)
+                yield f"data: {json.dumps({'token': text_delta})}\n\n"
 
-    return Response({"reply": reply})
+            reply = "".join(reply_parts)
+            ChatMessage.objects.create(
+                conversation=conversation, role="assistant", content=reply
+            )
+            conversation.save(update_fields=["updated_at"])
+            logger.info("Chat request completed: persona=%s response_chars=%d", persona_key, len(reply))
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception:
+            logger.exception("Failed to stream chat response for persona %s", persona_key)
+            yield f"data: {json.dumps({'error': 'Failed to generate a response.'})}\n\n"
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache, no-transform"
+    response["X-Accel-Buffering"] = "no"
+    return response
 
 
 @api_view(["GET"])

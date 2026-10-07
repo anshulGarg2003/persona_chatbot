@@ -30,6 +30,14 @@ export default function ChatArea({
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [input]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -152,7 +160,7 @@ export default function ChatArea({
               }
             }}
             placeholder={`Message ${currentPersona?.name || "Assistant"}...`}
-            className="flex-1 bg-transparent px-3 py-1.5 text-xs sm:text-sm text-[#263238] placeholder-[#87949b] resize-none outline-none"
+            className="flex-1 min-h-6 max-h-40 overflow-y-auto bg-transparent px-3 py-1.5 text-xs sm:text-sm text-[#263238] placeholder-[#87949b] resize-none outline-none"
           />
           <button
             onClick={onSend}

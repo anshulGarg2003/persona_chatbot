@@ -14,19 +14,22 @@ client = OpenAI(
 )
 
 
-def generate_response(prompt):
-    logger.info("Requesting chat completion: model=%s prompt_chars=%d", CHAT_MODEL, len(prompt))
+def stream_response(prompt):
+    """Yield chat completion text deltas as they arrive from OpenRouter."""
+    logger.info("Requesting streaming chat completion: model=%s prompt_chars=%d", CHAT_MODEL, len(prompt))
     try:
-        response = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model=CHAT_MODEL,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=CHAT_MAX_TOKENS,
             temperature=CHAT_TEMPERATURE,
             top_p=0.9,
+            stream=True,
         )
-        reply = response.choices[0].message.content
-        logger.info("Chat completion succeeded: response_chars=%d", len(reply or ""))
-        return reply
+        for chunk in stream:
+            content = chunk.choices[0].delta.content
+            if content:
+                yield content
     except Exception:
-        logger.exception("Chat completion API request failed: model=%s", CHAT_MODEL)
+        logger.exception("Streaming chat completion API request failed: model=%s", CHAT_MODEL)
         raise

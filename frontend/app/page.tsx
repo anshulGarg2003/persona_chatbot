@@ -93,17 +93,44 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/chat/`, {
-        message: trimmed,
-        persona: selectedPersona,
+      const response = await fetch(`${API_BASE}/chat/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed, persona: selectedPersona }),
       });
+      if (!response.ok || !response.body) throw new Error("Unable to start streamed response");
 
-      setMessages([...updatedMessages, { role: "assistant", content: res.data.reply }]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantReply = "";
+      setMessages([...updatedMessages, { role: "assistant", content: "" }]);
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || "";
+        for (const event of events) {
+          const dataLine = event.split("\n").find((line) => line.startsWith("data: "));
+          if (!dataLine) continue;
+          const data = JSON.parse(dataLine.slice(6)) as { token?: string; error?: string };
+          if (data.error) throw new Error(data.error);
+          if (data.token) {
+            assistantReply += data.token;
+            setMessages([...updatedMessages, { role: "assistant", content: assistantReply }]);
+          }
+        }
+      }
     } catch {
-      setMessages([
-        ...updatedMessages,
-        { role: "assistant", content: "Sorry, I encountered an issue generating a response." },
-      ]);
+      setMessages((current) => {
+        const withoutPartialReply = current.at(-1)?.role === "assistant" ? current.slice(0, -1) : current;
+        return [
+          ...withoutPartialReply,
+          { role: "assistant", content: "Sorry, I encountered an issue generating a response." },
+        ];
+      });
     } finally {
       setLoading(false);
     }
