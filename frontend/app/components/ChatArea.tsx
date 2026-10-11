@@ -79,6 +79,13 @@ export default function ChatArea({
         </button>
       </header>
 
+      <div className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-900">
+        AI simulation, not {currentPersona?.name || "the real person"}. Responses may be inaccurate; verify important information.
+      </div>
+
+      <div className="border-b border-sky-200 bg-sky-50 px-6 py-2 text-xs text-sky-900">
+        Privacy: Uploaded files, extracted document text, and chat history are stored by this app on its backend. Clear removes chat history; delete the custom persona to remove its uploaded file and indexed document chunks.
+      </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[radial-gradient(circle_at_1px_1px,#d9d2c8_1px,transparent_0)] [background-size:22px_22px] text-[#263238]">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-3">
@@ -147,7 +154,7 @@ export default function ChatArea({
       </div>
 
       <div className="p-4 border-t border-[#d8d1c7] bg-[#f0f2f5]">
-        <div className="max-w-3xl mx-auto flex items-center space-x-2 bg-white border border-[#d8d1c7] rounded-2xl p-2 shadow-sm">
+        <div className="max-w-3xl mx-auto flex items-end space-x-2 bg-white border border-[#d8d1c7] rounded-2xl p-2 shadow-sm">
           <textarea
             ref={inputRef}
             rows={1}

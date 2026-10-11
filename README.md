@@ -18,7 +18,9 @@ Persona Chatbot is a full-stack conversational app for exploring different voice
 
 Under the hood, uploaded documents are extracted and split into overlapping text chunks. OpenRouter generates embeddings for those chunks, which are stored in PostgreSQL using **pgvector**. When you ask a question, the app searches for relevant chunks and includes them as reference context for the language model’s response.
 
-> Custom personas are AI simulations based on their descriptions and source documents—they are not the real people they may represent.
+> **Simulation notice:** Personas are AI-generated simulations, not the real people they may represent. Replies can be inaccurate or incomplete; verify important information independently.
+>
+> **Privacy:** Uploaded files, extracted text chunks, and conversation messages are stored by the backend (files under `backend/data/uploads/`, chunks in PostgreSQL/pgvector, and messages in the application database). Clearing a conversation deletes its saved messages. Deleting a custom persona removes its uploaded file and indexed chunks. In deployments, configure appropriate access controls, retention, backups, and provider data policies; deleting local app data cannot control any data retained by external AI providers.
 
 ## ✨ Features
 

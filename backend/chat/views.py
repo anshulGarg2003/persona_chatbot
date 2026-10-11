@@ -184,15 +184,18 @@ def delete_persona_view(request, persona_id):
 
 
 @api_view(["POST"])
-@parser_classes([JSONParser, MultiPartParser, FormParser])
+@parser_classes([JSONParser])
 def chat_view(request):
-    """Generate a reply and persist both sides of the exchange."""
-    user_message = request.data.get("message")
+    """Generate a text reply and persist both sides of the exchange."""
+    user_message = request.data.get("message", "")
     persona_key = request.data.get("persona", "elon")
     logger.info("Chat request started: persona=%s message_chars=%d", persona_key, len(user_message) if isinstance(user_message, str) else 0)
 
-    if not isinstance(user_message, str) or not user_message.strip():
-        return Response({"error": "Message is required."}, status=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(user_message, str):
+        return Response({"error": "Message must be text."}, status=status.HTTP_400_BAD_REQUEST)
+    user_message = user_message.strip()
+    if not user_message:
+        return Response({"error": "Enter a message."}, status=status.HTTP_400_BAD_REQUEST)
 
     persona_obj = None
     if persona_key not in PERSONAS:
@@ -212,20 +215,21 @@ def chat_view(request):
     ][::-1]
 
     logger.info("Chat stage: building prompt persona=%s history_count=%d", persona_key, len(history))
-    prompt = build_prompt(persona_key, user_message.strip(), history, persona_obj=persona_obj)
+    prompt = build_prompt(persona_key, user_message, history, persona_obj=persona_obj)
     logger.info("Chat stage: prompt ready persona=%s prompt_chars=%d", persona_key, len(prompt))
 
     def event_stream():
         reply_parts = []
         try:
             ChatMessage.objects.create(
-                conversation=conversation, role="user", content=user_message.strip()
+                conversation=conversation, role="user", content=user_message
             )
             for text_delta in stream_response(prompt):
                 reply_parts.append(text_delta)
                 yield f"data: {json.dumps({'token': text_delta})}\n\n"
 
             reply = "".join(reply_parts)
+
             ChatMessage.objects.create(
                 conversation=conversation, role="assistant", content=reply
             )

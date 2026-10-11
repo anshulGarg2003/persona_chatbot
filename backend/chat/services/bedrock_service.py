@@ -7,18 +7,18 @@ logger = logging.getLogger(__name__)
 CHAT_MODEL = os.getenv("OPEN_ROUTER_CHAT_MODEL", "openai/gpt-4o-mini")
 CHAT_MAX_TOKENS = int(os.getenv("CHAT_MAX_TOKENS", "700"))
 CHAT_TEMPERATURE = float(os.getenv("CHAT_TEMPERATURE", "0.6"))
-
-client = OpenAI(
+# OpenRouter client for chat completions
+openrouter_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPEN_ROUTER_API_KEY"),
 )
 
 
 def stream_response(prompt):
-    """Yield chat completion text deltas as they arrive from OpenRouter."""
+    """Yield completion text deltas from the configured chat model."""
     logger.info("Requesting streaming chat completion: model=%s prompt_chars=%d", CHAT_MODEL, len(prompt))
     try:
-        stream = client.chat.completions.create(
+        stream = openrouter_client.chat.completions.create(
             model=CHAT_MODEL,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=CHAT_MAX_TOKENS,

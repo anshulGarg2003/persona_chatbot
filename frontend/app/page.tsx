@@ -115,7 +115,7 @@ export default function Home() {
         for (const event of events) {
           const dataLine = event.split("\n").find((line) => line.startsWith("data: "));
           if (!dataLine) continue;
-          const data = JSON.parse(dataLine.slice(6)) as { token?: string; error?: string };
+          const data = JSON.parse(dataLine.slice(6)) as { token?: string; error?: string; done?: boolean };
           if (data.error) throw new Error(data.error);
           if (data.token) {
             assistantReply += data.token;
